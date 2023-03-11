@@ -2,8 +2,11 @@ package com.cos.excample.JwtProject.config;
 
 import com.cos.excample.JwtProject.filter.MyFilter1;
 import com.cos.excample.JwtProject.filter.MyFilter3;
+import com.cos.excample.JwtProject.jwt.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+import org.springframework.security.web.context.SecurityContextPersistenceFilter;
 import org.springframework.web.filter.CorsFilter;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -20,7 +23,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        http.addFilterBefore(new MyFilter3(), BasicAuthenticationFilter.class); //여기 필터가 먼저 실행됨
+        http.addFilterBefore(new MyFilter3(), SecurityContextPersistenceFilter.class); //여기 필터가 시큐리티가 실행되기 전에 먼저 실행됨
         http.csrf().disable();
         http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS) //세션 사용하지 않겠다
                 .and()
@@ -28,6 +31,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                                         //@CrossOrigin(인증X)
                 .formLogin().disable() //폼으로 안 하고 토큰으로 할 거임
                 .httpBasic().disable() //기본적인 http 방식은 안 씀
+                .addFilter(new JwtAuthenticationFilter(authenticationManager())) //AuthenticationManager를 매개변수로 해야 함
                 .authorizeRequests()
                 .antMatchers("/api/v1/user/**")
                 .access("hasRole('ROLE_USE') or hasRole('ROLE_MANABER') or hasRole('ROLE_ADMIN')")
@@ -36,6 +40,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/api/v1/ADMIN/**")
                 .access("hasRole('ROLE_ADMIN')")
                 .anyRequest().permitAll(); //다른 요청은 모두 권한 없이 들어갈 수 있음
+
 
 
     }
