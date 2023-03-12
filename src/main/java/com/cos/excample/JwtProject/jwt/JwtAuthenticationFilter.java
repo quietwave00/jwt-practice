@@ -1,5 +1,7 @@
 package com.cos.excample.JwtProject.jwt;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
 import com.cos.excample.JwtProject.auth.PrincipalDetails;
 import com.cos.excample.JwtProject.model.User;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,6 +18,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.Date;
 
 //스프링 시큐리티에는 UsernamePasswordAuthenticationFilter가 있음
 //login 요청해서 username, password를 전송하면(POST)
@@ -87,6 +90,21 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
     @Override
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authResult) throws IOException, ServletException {
         System.out.println("successfulAuthentication 실행됨(인증 완료)");
-        super.successfulAuthentication(request, response, chain, authResult);
+        PrincipalDetails principalDetails = (PrincipalDetails) authResult.getPrincipal();
+
+        //Hash 암호 방식(RSA 방식X)
+        String jwtToken = JWT.create()
+                .withSubject("cos토큰") //토큰이름
+                .withExpiresAt(new Date(System.currentTimeMillis() + (60000 * 10))) //토큰 유효시간(1000 = 1초)
+                .withClaim("id", principalDetails.getUser().getId()) //비공개 claim, 넣고 싶은 키 값 넣기
+                .withClaim("username", principalDetails.getUser().getUsername())
+                .sign(Algorithm.HMAC512("cos")); //고유값
+
+        response.addHeader("Authorization", "Bearer " + jwtToken);
+        //헤더에
+        //Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJjb3PthqDtgbAiLCJpZCI6MSwiZXhwIjoxNjc4NjA5NjQwLCJ1c2VybmFtZSI6InNzYXIifQ.RX68hvGal_S0aAcgDyuptgETnDzqE2-ea9vFhZzfpFTiKZnc7ZRwuYghmeoGuphd0JoNesl7Ogu0blLQ-VAxHA
+        //들어오게 됨
+        //로그인이 됐으니 이 토큰으로 처리하는 필터가 필요함(서버가 JWT 토큰이 유효한지 판단하는 기능)
+        //세션은 session.getAttributes("세션값") 해서 확인하는데 토큰은 필터 필요
     }
 }
